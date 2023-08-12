@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33927.249
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityframeworkCore.Aes.DataEncryption", "EntityframeworkCore.Aes.EncryptColumn\EntityframeworkCore.Aes.DataEncryption.csproj", "{612E1BFD-200D-4A1D-B8B1-3F8C6DB8BCE3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{612E1BFD-200D-4A1D-B8B1-3F8C6DB8BCE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{612E1BFD-200D-4A1D-B8B1-3F8C6DB8BCE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{612E1BFD-200D-4A1D-B8B1-3F8C6DB8BCE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{612E1BFD-200D-4A1D-B8B1-3F8C6DB8BCE3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {04FF41C3-1DC5-458E-9593-C081DEDCC1E4}
+	EndGlobalSection
+EndGlobal
