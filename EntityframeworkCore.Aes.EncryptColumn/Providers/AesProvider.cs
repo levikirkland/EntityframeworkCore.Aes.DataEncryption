@@ -1,6 +1,6 @@
-﻿using System;
-using System.IO;
+﻿using EntityframeworkCore.Aes.DataEncryption.Extensions;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Microsoft.EntityFrameworkCore.DataEncryption.Providers;
 
@@ -9,127 +9,104 @@ namespace Microsoft.EntityFrameworkCore.DataEncryption.Providers;
 /// </summary>
 public class AesProvider : IEncryptionProvider
 {
-    /// <summary>
-    /// AES block size constant.
-    /// </summary>
-    public const int AesBlockSize = 128;
+    private readonly string _key;
+    private const string prefix = "EncryptedValue:";
 
-    /// <summary>
-    /// Initialization vector size constant.
-    /// </summary>
-    public const int InitializationVectorSize = 16;
-
-    private readonly byte[] _key;
-    private readonly byte[] _iv;
-    private readonly CipherMode _mode;
-    private readonly PaddingMode _padding;
-
+    public bool IsEncrypted(string text) =>
+        text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// Creates a new <see cref="AesProvider"/> instance used to perform symmetric encryption and decryption on strings.
     /// </summary>
     /// <param name="key">AES key used for the symmetric encryption.</param>
-    /// <param name="initializationVector">AES Initialization Vector used for the symmetric encryption.</param>
-    /// <param name="mode">Mode for operation used in the symmetric encryption.</param>
-    /// <param name="padding">Padding mode used in the symmetric encryption.</param>
-    public AesProvider(byte[] key, byte[] initializationVector, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
+
+    public AesProvider(string key)
     {
         _key = key ?? throw new ArgumentNullException(nameof(key), "");
-        _iv = initializationVector ?? throw new ArgumentNullException(nameof(initializationVector), "");
-        _mode = mode;
-        _padding = padding;
     }
 
     /// <inheritdoc />
-    public byte[] Encrypt(byte[] input)
+    public string Encrypt(string input)
     {
-        if (input is null || input.Length == 0)
+        if (string.IsNullOrWhiteSpace(input) || IsEncrypted(input))
         {
-            return null;
+            return input!;
         }
+        var convertedKey = ConvertBase64ToByte(_key);
 
-        using Aes aes = CreateCryptographyProvider(_key, _iv, _mode, _padding);
-        using ICryptoTransform transform = aes.CreateEncryptor(aes.Key, aes.IV);
-        using MemoryStream memoryStream = new();
-        using CryptoStream cryptoStream = new(memoryStream, transform, CryptoStreamMode.Write);
+        if (convertedKey.Length == 0)
+            throw new Exception("Bad or malformed key");
 
-        cryptoStream.Write(input, 0, input.Length);
-        cryptoStream.FlushFinalBlock();
-        memoryStream.Seek(0L, SeekOrigin.Begin);
+        byte[] vector = GenerateInitializationVector();
 
-        return StreamToBytes(memoryStream);
+        string encryptedText = Convert.ToBase64String(EncryptString(input, convertedKey, vector));
+
+        return prefix + Convert.ToBase64String(vector) + ";" + encryptedText;
+
     }
+
+    private byte[] EncryptString(string plainText, byte[] key, byte[] vector)
+    {
+        using (var aes = Aes.Create())
+        using (var encryptor = aes.CreateEncryptor(key, vector))
+        using (var memoryStream = new MemoryStream())
+        using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+        {
+            using (var streamWriter = new StreamWriter(cryptoStream, Encoding.UTF8))
+            {
+                streamWriter.Write(plainText);
+            }
+
+            return memoryStream.ToArray();
+        }
+    }
+
 
     /// <inheritdoc />
-    public byte[] Decrypt(byte[] input)
+    public string Decrypt(string input)
     {
-        if (input is null || input.Length == 0)
+        if (string.IsNullOrWhiteSpace(input) || !IsEncrypted(input))
         {
-            return null;
+            // There is no need to decrypt null/empty or unencrypted text.
+            return input;
         }
 
-        using Aes aes = CreateCryptographyProvider(_key, _iv, _mode, _padding);
-        using ICryptoTransform transform = aes.CreateDecryptor(aes.Key, aes.IV);
-        using MemoryStream memoryStream = new(input);
-        using CryptoStream cryptoStream = new(memoryStream, transform, CryptoStreamMode.Read);
+        var convertedKey = ConvertBase64ToByte(_key);
 
-        return StreamToBytes(cryptoStream);
+        if (convertedKey.Length == 0)
+            throw new Exception("Bad or malformed key");
+
+        byte[] vector = Convert.FromBase64String(input.Split(';')[0].Split(':')[1]);
+
+        return DecryptString(Convert.FromBase64String(input.Split(';')[1]), convertedKey, vector);
     }
 
-    /// <summary>
-    /// Converts a <see cref="Stream"/> into a byte array.
-    /// </summary>
-    /// <param name="stream">Stream.</param>
-    /// <returns>The stream's content as a byte array.</returns>
-    internal static byte[] StreamToBytes(Stream stream)
+    private string DecryptString(byte[] encryptedBytes, byte[] key, byte[] vector)
     {
-        if (stream is MemoryStream ms)
+        using (var aes = Aes.Create())
+        using (var decryptor = aes.CreateDecryptor(key, vector))
+        using (var memoryStream = new MemoryStream(encryptedBytes))
+        using (var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+        using (var streamReader = new StreamReader(cryptoStream, Encoding.UTF8))
         {
-            return ms.ToArray();
+            return streamReader.ReadToEnd();
         }
-
-        using var output = new MemoryStream();
-        stream.CopyTo(output);
-        return output.ToArray();
     }
 
-    /// <summary>
-    /// Generates an AES cryptography provider.
-    /// </summary>
-    /// <returns></returns>
-    private static Aes CreateCryptographyProvider(byte[] key, byte[] iv, CipherMode mode, PaddingMode padding)
+    private byte[] GenerateInitializationVector()
     {
         var aes = Aes.Create();
-
-        aes.Mode = mode;
-        aes.KeySize = key.Length * 8;
-        aes.BlockSize = AesBlockSize;
-        aes.FeedbackSize = AesBlockSize;
-        aes.Padding = padding;
-        aes.Key = key;
-        aes.IV = iv;
-
-        return aes;
-    }
-
-    /// <summary>
-    /// Generates an AES key.
-    /// </summary>
-    /// <remarks>
-    /// The key size of the Aes encryption must be 128, 192 or 256 bits. 
-    /// Please check https://blogs.msdn.microsoft.com/shawnfa/2006/10/09/the-differences-between-rijndael-and-aes/ for more informations.
-    /// </remarks>
-    /// <param name="keySize">AES Key size</param>
-    /// <returns></returns>
-    public static AesKeyInfo GenerateKey(AesKeySize keySize)
-    {
-        var aes = Aes.Create();
-
-        aes.KeySize = (int)keySize;
-        aes.BlockSize = AesBlockSize;
-
-        aes.GenerateKey();
         aes.GenerateIV();
 
-        return new AesKeyInfo(aes.Key, aes.IV);
+        return aes.IV;
+    }
+
+    private byte[] ConvertBase64ToByte(string keyBase64)
+    {
+        if (keyBase64.IsBase64String())
+        {
+            return Convert.FromBase64String(keyBase64);
+        }
+
+        return new byte[0];
     }
 }

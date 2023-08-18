@@ -7,6 +7,7 @@ namespace Microsoft.EntityFrameworkCore.DataEncryption.Internal;
 /// <summary>
 /// Defines the internal encryption converter for string values.
 /// </summary>
+/// 
 /// <typeparam name="TModel"></typeparam>
 /// <typeparam name="TProvider"></typeparam>
 internal sealed class EncryptionConverter<TModel, TProvider> : ValueConverter<TModel, TProvider>
@@ -27,25 +28,25 @@ internal sealed class EncryptionConverter<TModel, TProvider> : ValueConverter<TM
 
     private static TOutput Encrypt<TInput, TOutput>(TInput input, IEncryptionProvider encryptionProvider, StorageFormat storageFormat)
     {
-        byte[] inputData = input switch
+        string? inputData = input switch
         {
-            string => !string.IsNullOrEmpty(input.ToString()) ? Encoding.UTF8.GetBytes(input.ToString()) : null,
-            byte[] => input as byte[],
+            string => input as string,
             _ => null,
-        };
+        }; ; ;
 
-        byte[] encryptedRawBytes = encryptionProvider.Encrypt(inputData);
+        string encryptedRawBytes = encryptionProvider.Encrypt(inputData!);  //converting to string from byte[]
 
         if (encryptedRawBytes is null)
         {
-            return default;
+            return default!;
         }
 
         object encryptedData = storageFormat switch
         {
-            StorageFormat.Default or StorageFormat.Base64 => Convert.ToBase64String(encryptedRawBytes),
+            StorageFormat.Default => encryptedRawBytes,
+            StorageFormat.Base64 => Convert.ToBase64String(Encoding.ASCII.GetBytes(encryptedRawBytes)),
             _ => encryptedRawBytes
-        };
+        }; ;
 
         return (TOutput)Convert.ChangeType(encryptedData, typeof(TOutput));
     }
@@ -53,23 +54,22 @@ internal sealed class EncryptionConverter<TModel, TProvider> : ValueConverter<TM
     private static TModel Decrypt<TInput, TOupout>(TProvider input, IEncryptionProvider encryptionProvider, StorageFormat storageFormat)
     {
         Type destinationType = typeof(TModel);
-        byte[] inputData = storageFormat switch
+        string? inputData = storageFormat switch
         {
-            StorageFormat.Default or StorageFormat.Base64 => Convert.FromBase64String(input.ToString()),
-            _ => input as byte[]
+            StorageFormat.Default => input!.ToString()!,
+            StorageFormat.Base64 => Encoding.UTF8.GetString(Convert.FromBase64String(input!.ToString()!)),
+            _ => input as string
         };
-        byte[] decryptedRawBytes = encryptionProvider.Decrypt(inputData);
+
+        string decryptedRawBytes = encryptionProvider.Decrypt(inputData);
         object decryptedData = null;
 
         if (decryptedRawBytes != null && destinationType == typeof(string))
         {
-            decryptedData = Encoding.UTF8.GetString(decryptedRawBytes).Trim('\0');
-        }
-        else if (destinationType == typeof(byte[]))
-        {
             decryptedData = decryptedRawBytes;
         }
 
-        return (TModel)Convert.ChangeType(decryptedData, typeof(TModel));
+
+        return (TModel)Convert.ChangeType(decryptedData, typeof(TModel))!;
     }
 }

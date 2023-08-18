@@ -68,7 +68,8 @@ namespace Microsoft.EntityFrameworkCore.DataEncryption
             {
                 return storageFormat switch
                 {
-                    StorageFormat.Default or StorageFormat.Base64 => new EncryptionConverter<string, string>(encryptionProvider, StorageFormat.Base64),
+                    StorageFormat.Default => new EncryptionConverter<string, string>(encryptionProvider, StorageFormat.Default),
+                    StorageFormat.Base64 => new EncryptionConverter<string, string>(encryptionProvider, StorageFormat.Base64),
                     StorageFormat.Binary => new EncryptionConverter<string, byte[]>(encryptionProvider, StorageFormat.Binary),
                     _ => throw new NotImplementedException()
                 };
@@ -77,7 +78,8 @@ namespace Microsoft.EntityFrameworkCore.DataEncryption
             {
                 return storageFormat switch
                 {
-                    StorageFormat.Default or StorageFormat.Binary => new EncryptionConverter<byte[], byte[]>(encryptionProvider, StorageFormat.Binary),
+                    StorageFormat.Default => new EncryptionConverter<byte[], byte[]>(encryptionProvider, StorageFormat.Binary),
+                    StorageFormat.Binary => new EncryptionConverter<byte[], byte[]>(encryptionProvider, StorageFormat.Binary),
                     StorageFormat.Base64 => new EncryptionConverter<byte[], string>(encryptionProvider, StorageFormat.Base64),
                     _ => throw new NotImplementedException()
                 };
@@ -116,14 +118,14 @@ namespace Microsoft.EntityFrameworkCore.DataEncryption
                     storageFormat = encryptedAttribute.Format;
                 }
 
-                IAnnotation encryptedAnnotation = property.FindAnnotation(PropertyAnnotations.IsEncrypted);
+                IAnnotation encryptedAnnotation = property.FindAnnotation(PropertyAnnotations.IsEncrypted)!;
 
-                if (encryptedAnnotation != null && (bool)encryptedAnnotation.Value == true)
+                if (encryptedAnnotation != null && (bool)encryptedAnnotation.Value! == true)
                 {
-                    storageFormat = (StorageFormat)property.FindAnnotation(PropertyAnnotations.StorageFormat)?.Value;
+                    storageFormat = (StorageFormat)property.FindAnnotation(PropertyAnnotations.StorageFormat)?.Value!;
                 }
 
-                return storageFormat.HasValue ? new EncryptedProperty(property, storageFormat.Value) : null;
+                return storageFormat.HasValue ? new EncryptedProperty(property, storageFormat.Value) : null!;
             }
         }
     }

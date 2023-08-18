@@ -8,7 +8,7 @@
         /// <summary>
         /// The format is determined by the model data type.
         /// </summary>
-        Default,
+        Default,  //converting to custom Prefix + base64(IV) + base64(cipher)
 
         /// <summary>
         /// The value is stored in binary.

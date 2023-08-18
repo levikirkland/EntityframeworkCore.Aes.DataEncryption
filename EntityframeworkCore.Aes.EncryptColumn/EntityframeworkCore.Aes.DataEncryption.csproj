@@ -4,17 +4,17 @@
     <TargetFrameworks>net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageId>EntityFrameworkCore.ColumnEncryption</PackageId>
+    <PackageId>EntityFrameworkCore.Aes.ColumnEncryption</PackageId>
     <Title>EntityFrameworkCore Aes ColumnEncryption</Title>
     <Authors>levikirkland</Authors>
     <Copyright>levikirkland © 2023</Copyright>
     <Description>Microsoft.EntityFrameworkCore to encrypt columns using Aes Encryption. Creates a delimited string to write to column to persiste IV with cipher text.</Description>
     <PackageProjectUrl>https://github.com/levikirkland/EntityframeworkCore.Aes.DataEncryption</PackageProjectUrl>
-    <PackageIcon>shield.png</PackageIcon>
     <RepositoryUrl>https://github.com/levikirkland/EntityframeworkCore.Aes.DataEncryption</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>entity-framework-core, extensions, dotnet-core, dotnet, encryption, fluent-api</PackageTags>
     <PackageReleaseNotes>Version 1.</PackageReleaseNotes>
+    <PackageIcon>Resources\shield.png</PackageIcon>
 
   </PropertyGroup>
 
@@ -23,9 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\shield.png">
+    <None Include="Resources\shield.png">
       <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
+      <PackagePath>Resources\shield.png</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
