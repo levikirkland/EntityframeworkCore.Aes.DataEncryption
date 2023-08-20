@@ -22,8 +22,8 @@ public class AesProviderTest
         var key = Convert.ToBase64String(aes.Key);
         var provider = new AesProvider(key);
 
-        Assert.NotNull(provider.Encrypt(null));
-        Assert.Null(provider.Encrypt(string.Empty));
+        Assert.Null(provider.Encrypt(null));
+        Assert.NotNull(provider.Encrypt(string.Empty));
     }
 
     [Fact]
